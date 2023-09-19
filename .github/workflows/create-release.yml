@@ -1,0 +1,55 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out
+      uses: actions/checkout@v4
+
+    - name: Create Tar Archive
+      run: |
+        TAG_NAME=$(echo "$GITHUB_REF" | cut -d'/' -f3 | cut -dv -f2)
+        REPO_NAME=$(echo $GITHUB_REPOSITORY | cut -d '/' -f2 )
+        ARCH_DIR="${REPO_NAME}-${TAG_NAME}"
+        mkdir $ARCH_DIR
+        cp *.pem $ARCH_DIR
+        tar -czvf $ARCH_DIR.tar.gz $ARCH_DIR
+        echo "ARCH_DIR=$ARCH_DIR" >> $GITHUB_ENV
+
+    - name: Upload Release Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.ARCH_DIR }}.tar.gz
+        path: ${{ env.ARCH_DIR }}.tar.gz
+        retention-days: 1
+        if-no-files-found: error 
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        draft: false
+        prerelease: false
+        files: |
+          *.tar.gz
+
+    - name: Create GitHub Release
+      id: create_latest_release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        draft: false
+        prerelease: false
+        automatic_release_tag: "latest"
+        files: |
+          *.tar.gz
+    
+
